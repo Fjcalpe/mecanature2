@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <title>Juego 3D - N8AO Fixed & Shadows</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+</head>
+<body>
+    <div id="fade-overlay"></div>
+
+    <div id="quality-hud" class="ui-element">
+        <button id="btn-q-high" class="q-btn active">ALTA</button>
+        <button id="btn-q-med" class="q-btn">MEDIA</button>
+        <button id="btn-q-low" class="q-btn">BAJA</button>
+        <label class="ao-label">
+            <input type="checkbox" id="ao-toggle"> AO (N8)
+        </label>
+    </div>
+
+    <div id="fog-ui" class="ui-element">
+        <label>DENSIDAD NIEBLA: <span id="fog-val">0.022</span></label>
+        <input type="range" id="fog-slider" min="0" max="0.1" step="0.001" value="0.022">
+    </div>
+
+    <div id="debug-ui" class="ui-element">
+        <div class="debug-row">
+            <button id="btn-lvl-1" class="q-btn">FASE 1</button>
+            <button id="btn-lvl-2" class="q-btn">FASE 2</button>
+        </div>
+    </div>
+
+    <div id="bar-top" class="cinematic-bar"></div>
+    <div id="bar-bottom" class="cinematic-bar"></div>
+
+    <div id="fps-display">FPS: 0</div>
+    
+    <div id="quest-message" class="game-message">WORK AND BE PATIENT</div>
+    <div id="freq-hint" class="game-message">Recoge los orbes de menor a mayor frecuencia</div>
+    <div id="jump-hint" class="game-message">Salta sobre la mascara para anularla</div>
+    
+    <div id="error-log"></div>
+
+    <div id="joystick-container" class="ui-element"><div id="joystick-thumb"></div></div>
+    <div id="actions-container" class="ui-element">
+        <div class="action-btn" id="btn-jump">SALTAR</div>
+        <div class="action-btn" id="btn-shoot">DISPARAR</div>
+    </div>
+    
+    <div id="pc-instructions" class="ui-element">WASD: Mover | ESPACIO: Saltar | P: Disparar</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://esm.sh/three@0.168.0",
+                "three/addons/": "https://esm.sh/three@0.168.0/examples/jsm/",
+                "n8ao": "https://cdn.jsdelivr.net/npm/n8ao@1.10.2/dist/n8ao.module.js"
+            }
+        }
+    </script>
+    
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
