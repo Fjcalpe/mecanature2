@@ -4,6 +4,7 @@
 		"version":"2.0"
 	},
 	"extensionsUsed":[
+		"KHR_materials_specular",
 		"EXT_texture_webp"
 	],
 	"extensionsRequired":[
@@ -59,7 +60,8 @@
 				42,
 				43,
 				44,
-				45
+				45,
+				46
 			]
 		}
 	],
@@ -463,22 +465,37 @@
 		},
 		{
 			"mesh":41,
-			"name":"Rocas_AO",
+			"name":"material.002",
 			"rotation":[
-				-0.05121161788702011,
-				0.47059115767478943,
-				-0.030017642304301262,
-				0.8803523778915405
+				0.70710688829422,
+				0,
+				0,
+				0.7071066498756409
 			],
 			"scale":[
-				1.908402442932129,
-				1.908402919769287,
-				1.908402681350708
+				1.1697437763214111,
+				1.1697438955307007,
+				1.1697438955307007
+			]
+		},
+		{
+			"mesh":42,
+			"name":"material.003",
+			"rotation":[
+				0.6678012013435364,
+				-0.23737527430057526,
+				0.23684588074684143,
+				0.6645288467407227
+			],
+			"scale":[
+				1.1697437763214111,
+				1.1697438955307007,
+				1.1697440147399902
 			],
 			"translation":[
-				73.64340209960938,
-				7.699642181396484,
-				-32.74116516113281
+				61.47287368774414,
+				10.58983039855957,
+				-9.424176216125488
 			]
 		}
 	],
@@ -515,7 +532,12 @@
 		},
 		{
 			"doubleSided":true,
-			"name":"Material.008",
+			"extensions":{
+				"KHR_materials_specular":{
+					"specularFactor":0
+				}
+			},
+			"name":"Material.009",
 			"normalTexture":{
 				"index":6
 			},
@@ -1079,7 +1101,7 @@
 			]
 		},
 		{
-			"name":"Cube.056",
+			"name":"material.005",
 			"primitives":[
 				{
 					"attributes":{
@@ -1089,6 +1111,21 @@
 						"TEXCOORD_1":143
 					},
 					"indices":144,
+					"material":2
+				}
+			]
+		},
+		{
+			"name":"material.001",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":145,
+						"NORMAL":146,
+						"TEXCOORD_0":147,
+						"TEXCOORD_1":148
+					},
+					"indices":149,
 					"material":2
 				}
 			]
@@ -1201,18 +1238,18 @@
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"Rocks016_2K-JPG_NormalGL",
-			"uri":"Rocks016_2K-JPG_NormalGL.webp"
+			"name":"Rocks016_2K-JPG_NormalGL.jpg",
+			"uri":"Rocks016_2K-JPG_NormalGL.jpg.webp"
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"Material.008_exp_AO",
-			"uri":"Material.008_exp_AO.webp"
+			"name":"material.002_01_exp_AO",
+			"uri":"material.002_01_exp_AO.webp"
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"Rocks016_2K-JPG_Color copia",
-			"uri":"Rocks016_2K-JPG_Color%20copia.webp"
+			"name":"texture_20250901",
+			"uri":"texture_20250901.webp"
 		}
 	],
 	"accessors":[
@@ -2469,41 +2506,81 @@
 		{
 			"bufferView":140,
 			"componentType":5126,
-			"count":29733,
+			"count":225912,
 			"max":[
-				2.468884229660034,
-				10.711243629455566,
-				15.512114524841309
+				73.65773010253906,
+				15.382529258728027,
+				0.949999988079071
 			],
 			"min":[
-				-31.860027313232422,
-				-6.850070953369141,
-				-15.284597396850586
+				-0.360276997089386,
+				-36.231170654296875,
+				-19.767601013183594
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":141,
 			"componentType":5126,
-			"count":29733,
+			"count":225912,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":142,
 			"componentType":5126,
-			"count":29733,
+			"count":225912,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":143,
 			"componentType":5126,
-			"count":29733,
+			"count":225912,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":144,
-			"componentType":5123,
-			"count":92928,
+			"componentType":5125,
+			"count":416679,
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":145,
+			"componentType":5126,
+			"count":225911,
+			"max":[
+				17.823135375976562,
+				26.298999786376953,
+				10.028956413269043
+			],
+			"min":[
+				-56.19486999511719,
+				-25.314699172973633,
+				-10.688644409179688
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":146,
+			"componentType":5126,
+			"count":225911,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":147,
+			"componentType":5126,
+			"count":225911,
+			"type":"VEC2"
+		},
+		{
+			"bufferView":148,
+			"componentType":5126,
+			"count":225911,
+			"type":"VEC2"
+		},
+		{
+			"bufferView":149,
+			"componentType":5125,
+			"count":416679,
 			"type":"SCALAR"
 		}
 	],
@@ -3350,32 +3427,62 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":356796,
+			"byteLength":2710944,
 			"byteOffset":774620,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":356796,
-			"byteOffset":1131416,
+			"byteLength":2710944,
+			"byteOffset":3485564,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":237864,
-			"byteOffset":1488212,
+			"byteLength":1807296,
+			"byteOffset":6196508,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":237864,
-			"byteOffset":1726076,
+			"byteLength":1807296,
+			"byteOffset":8003804,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":185856,
-			"byteOffset":1963940,
+			"byteLength":1666716,
+			"byteOffset":9811100,
+			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":2710932,
+			"byteOffset":11477816,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":2710932,
+			"byteOffset":14188748,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1807288,
+			"byteOffset":16899680,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1807288,
+			"byteOffset":18706968,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1666716,
+			"byteOffset":20514256,
 			"target":34963
 		}
 	],
@@ -3387,7 +3494,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":2149796,
+			"byteLength":22180972,
 			"uri":"Escenario_2.bin"
 		}
 	]
