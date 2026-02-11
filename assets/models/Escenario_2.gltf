@@ -4,7 +4,6 @@
 		"version":"2.0"
 	},
 	"extensionsUsed":[
-		"KHR_materials_specular",
 		"EXT_texture_webp"
 	],
 	"extensionsRequired":[
@@ -60,8 +59,7 @@
 				42,
 				43,
 				44,
-				45,
-				46
+				45
 			]
 		}
 	],
@@ -465,7 +463,7 @@
 		},
 		{
 			"mesh":41,
-			"name":"material.002",
+			"name":"rocas AO",
 			"rotation":[
 				0.70710688829422,
 				0,
@@ -473,29 +471,9 @@
 				0.7071066498756409
 			],
 			"scale":[
-				1.1697437763214111,
-				1.1697438955307007,
-				1.1697438955307007
-			]
-		},
-		{
-			"mesh":42,
-			"name":"material.003",
-			"rotation":[
-				0.6678012013435364,
-				-0.23737527430057526,
-				0.23684588074684143,
-				0.6645288467407227
-			],
-			"scale":[
-				1.1697437763214111,
-				1.1697438955307007,
-				1.1697440147399902
-			],
-			"translation":[
-				61.47287368774414,
-				10.58983039855957,
-				-9.424176216125488
+				0.7950339317321777,
+				0.7950340509414673,
+				0.7950340509414673
 			]
 		}
 	],
@@ -532,14 +510,10 @@
 		},
 		{
 			"doubleSided":true,
-			"extensions":{
-				"KHR_materials_specular":{
-					"specularFactor":0
-				}
-			},
-			"name":"Material.009",
+			"name":"MatPlus_rocas AO_01",
 			"normalTexture":{
-				"index":6
+				"index":6,
+				"scale":0.7000000476837158
 			},
 			"occlusionTexture":{
 				"index":7,
@@ -549,7 +523,8 @@
 				"baseColorTexture":{
 					"index":8
 				},
-				"metallicFactor":0
+				"metallicFactor":0,
+				"roughnessFactor":0.7736363410949707
 			}
 		}
 	],
@@ -1101,7 +1076,7 @@
 			]
 		},
 		{
-			"name":"material.005",
+			"name":"material.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -1111,21 +1086,6 @@
 						"TEXCOORD_1":143
 					},
 					"indices":144,
-					"material":2
-				}
-			]
-		},
-		{
-			"name":"material.001",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":145,
-						"NORMAL":146,
-						"TEXCOORD_0":147,
-						"TEXCOORD_1":148
-					},
-					"indices":149,
 					"material":2
 				}
 			]
@@ -1238,18 +1198,18 @@
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"Rocks016_2K-JPG_NormalGL.jpg",
-			"uri":"Rocks016_2K-JPG_NormalGL.jpg.webp"
+			"name":"rocas pointy normalmap bevel",
+			"uri":"rocas%20pointy%20normalmap%20bevel.webp"
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"material.002_01_exp_AO",
-			"uri":"material.002_01_exp_AO.webp"
+			"name":"rocas AO_01_exp_AO",
+			"uri":"rocas%20AO_01_exp_AO.webp"
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"texture_20250901",
-			"uri":"texture_20250901.webp"
+			"name":"WhatsApp Image 2026-02-10 at 14.02.46",
+			"uri":"WhatsApp%20Image%202026-02-10%20at%2014.02.46.webp"
 		}
 	],
 	"accessors":[
@@ -2506,81 +2466,41 @@
 		{
 			"bufferView":140,
 			"componentType":5126,
-			"count":225912,
+			"count":386726,
 			"max":[
-				73.65773010253906,
-				15.382529258728027,
-				0.949999988079071
+				116.41222381591797,
+				27.756305694580078,
+				0.9523695111274719
 			],
 			"min":[
-				-0.360276997089386,
-				-36.231170654296875,
-				-19.767601013183594
+				-0.36933600902557373,
+				-60.5086669921875,
+				-24.467350006103516
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":141,
 			"componentType":5126,
-			"count":225912,
+			"count":386726,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":142,
 			"componentType":5126,
-			"count":225912,
+			"count":386726,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":143,
 			"componentType":5126,
-			"count":225912,
+			"count":386726,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":144,
 			"componentType":5125,
-			"count":416679,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":145,
-			"componentType":5126,
-			"count":225911,
-			"max":[
-				17.823135375976562,
-				26.298999786376953,
-				10.028956413269043
-			],
-			"min":[
-				-56.19486999511719,
-				-25.314699172973633,
-				-10.688644409179688
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":146,
-			"componentType":5126,
-			"count":225911,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":147,
-			"componentType":5126,
-			"count":225911,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":148,
-			"componentType":5126,
-			"count":225911,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":149,
-			"componentType":5125,
-			"count":416679,
+			"count":693057,
 			"type":"SCALAR"
 		}
 	],
@@ -3427,62 +3347,32 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":2710944,
+			"byteLength":4640712,
 			"byteOffset":774620,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2710944,
-			"byteOffset":3485564,
+			"byteLength":4640712,
+			"byteOffset":5415332,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1807296,
-			"byteOffset":6196508,
+			"byteLength":3093808,
+			"byteOffset":10056044,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1807296,
-			"byteOffset":8003804,
+			"byteLength":3093808,
+			"byteOffset":13149852,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1666716,
-			"byteOffset":9811100,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":2710932,
-			"byteOffset":11477816,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2710932,
-			"byteOffset":14188748,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1807288,
-			"byteOffset":16899680,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1807288,
-			"byteOffset":18706968,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1666716,
-			"byteOffset":20514256,
+			"byteLength":2772228,
+			"byteOffset":16243660,
 			"target":34963
 		}
 	],
@@ -3494,7 +3384,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":22180972,
+			"byteLength":19015888,
 			"uri":"Escenario_2.bin"
 		}
 	]
