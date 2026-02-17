@@ -74,9 +74,9 @@
 			"mesh":0,
 			"name":"Character_init",
 			"translation":[
-				37.19955825805664,
+				40.71208572387695,
 				5.399064064025879,
-				-12.41286563873291
+				-12.748322486877441
 			]
 		},
 		{
@@ -181,7 +181,12 @@
 		},
 		{
 			"mesh":10,
-			"name":"plataforma_collision"
+			"name":"plataforma_collision",
+			"translation":[
+				0,
+				0.014930659905076027,
+				0
+			]
 		},
 		{
 			"mesh":11,
@@ -192,7 +197,7 @@
 			"name":"plataforma_collision.001",
 			"translation":[
 				-0.16440773010253906,
-				-0.19192185997962952,
+				0.019037291407585144,
 				0.2031250298023224
 			]
 		},
@@ -202,7 +207,12 @@
 		},
 		{
 			"mesh":14,
-			"name":"plataforma_collision.002"
+			"name":"plataforma_collision.002",
+			"translation":[
+				0,
+				0.01742410659790039,
+				0
+			]
 		},
 		{
 			"mesh":15,
@@ -210,7 +220,12 @@
 		},
 		{
 			"mesh":16,
-			"name":"plataforma_collision.003"
+			"name":"plataforma_collision.003",
+			"translation":[
+				0,
+				0.01773579977452755,
+				0
+			]
 		},
 		{
 			"mesh":17,
@@ -1673,8 +1688,8 @@
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"intercambiador_up_Material.011_Normal",
-			"uri":"intercambiador_up_Material.011_Normal.webp"
+			"name":"intercambiador_up_Normal_FINAL",
+			"uri":"intercambiador_up_Normal_FINAL.webp"
 		},
 		{
 			"mimeType":"image/webp",
