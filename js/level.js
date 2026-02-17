@@ -2,16 +2,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ParticleSystem3D } from './particles.js';
 
-// --- CONFIGURACIÓN DE LUCES DE ARBOLITO ---
+// --- CONFIGURACIÓN DE LUCES DE ARBOLITO (Valores de la captura) ---
 const TREE_LIGHT_CONFIG = {
     color: 0x7cf0fa,
-    intensity: 96,
-    distance: 11,
+    intensity: 53.0, // Antes 96
+    distance: 14.0,  // Antes 11
     shadow: false
 };
-
-// POSICIÓN FIJA PARA LA LUZ 1 (Las demás usarán la posición de Blender)
-const LIGHT_1_POS = new THREE.Vector3(49.15, -1.33, -6.70);
 
 const ORB_PHASES = [
     { color: 0xffa500, sound: './assets/sound/orbe_bass.mp3' }, 
@@ -241,22 +238,14 @@ function findGeometryForPath(obj) {
     return cleanPoints;
 }
 
-// CREADOR DE LUCES CON VALORES ESTANDARIZADOS
 function createTreeLight(scene, pos, index) {
     const light = new THREE.PointLight(TREE_LIGHT_CONFIG.color, TREE_LIGHT_CONFIG.intensity, TREE_LIGHT_CONFIG.distance);
-    
-    // Si es la primera luz (índice 0), forzamos la posición dada por el usuario
-    if (index === 0) {
-        light.position.copy(LIGHT_1_POS);
-    } else {
-        light.position.copy(pos);
-    }
+    light.position.copy(pos);
     
     light.castShadow = TREE_LIGHT_CONFIG.shadow;
     light.shadow.bias = -0.0001;
     light.shadow.mapSize.set(512, 512);
 
-    // Esfera Roja DEBUG (Visible a través de paredes)
     const sphereGeo = new THREE.SphereGeometry(0.5, 16, 16);
     const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, depthTest: false, transparent: true });
     const visMesh = new THREE.Mesh(sphereGeo, sphereMat);
@@ -303,7 +292,6 @@ export function loadLevel(scene, loadingManager, levelFile, onLoadComplete) {
         masterModule.traverse((child) => {
             const name = child.name.toLowerCase();
 
-            // Detectar Arbolitos y aplicar luces clonadas
             if (name.includes("luz") && name.includes("arbolito")) {
                 const worldPos = new THREE.Vector3();
                 child.getWorldPosition(worldPos);
@@ -367,7 +355,6 @@ export function loadLevel(scene, loadingManager, levelFile, onLoadComplete) {
             }
         });
 
-        // Fallback por seguridad
         if (levelState.treeLights.length === 0) {
             console.warn("⚠️ NO SE ENCONTRARON LUCES. Creando luz de emergencia...");
             createTreeLight(scene, new THREE.Vector3(0, 10, 0), 0);

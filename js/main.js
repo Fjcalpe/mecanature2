@@ -15,14 +15,14 @@ import { WorldEditor } from './world_editor.js';
 const freqHint = document.getElementById('freq-hint');
 const jumpHint = document.getElementById('jump-hint');
 
-// --- CONFIGURACIÓN DE AMBIENTE (Tus valores) ---
+// --- CONFIGURACIÓN DE AMBIENTE (Valores de la captura) ---
 const DEFAULT_ENV = {
   "fogColor": "#fafdce",
-  "fogDensity": 0.012,
+  "fogDensity": 0.018, // Actualizado según petición
   "sunColor": "#fbebbb",
   "sunIntensity": 3.1,
   "hemiSkyColor": "#ffffff",
-  "hemiGroundColor": "#1e667b",
+  "hemiGroundColor": "#1e667b", // Azulado captura
   "hemiIntensity": 0,
   "exposure": 1.2
 };
@@ -97,7 +97,7 @@ new THREE.TextureLoader().load('./assets/textures/bg_reflejosIBL.webp', (t) => {
     if(scene.environmentRotation) scene.environmentRotation.y = THREE.MathUtils.degToRad(334); 
 });
 
-// EDITOR
+// EDITOR (Se ocultará visualmente desde world_editor.js)
 const worldEditor = new WorldEditor(scene, sunLight, hemiLight, renderer, camera);
 
 function applyGraphicsSettings(quality) {

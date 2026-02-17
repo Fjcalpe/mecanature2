@@ -14,21 +14,21 @@ export class WorldEditor {
         this.selectedLightIndex = -1;
         this.gizmo = null;
 
-        // VALORES POR DEFECTO DEL USUARIO
+        // VALORES POR DEFECTO DEL USUARIO (Actualizados a los de la captura)
         this.params = {
-            fogColor: '#' + (scene.fog ? scene.fog.color.getHexString() : 'ffffff'),
-            fogDensity: scene.fog ? scene.fog.density : 0.012,
+            fogColor: '#' + (scene.fog ? scene.fog.color.getHexString() : 'fafdce'),
+            fogDensity: scene.fog ? scene.fog.density : 0.018,
             sunColor: '#' + sunLight.color.getHexString(),
-            sunIntensity: sunLight.intensity,
+            sunIntensity: sunLight.intensity, // Será 3.1
             hemiSkyColor: '#' + hemiLight.color.getHexString(),
             hemiGroundColor: '#' + hemiLight.groundColor.getHexString(),
-            hemiIntensity: hemiLight.intensity,
-            exposure: renderer.toneMappingExposure,
+            hemiIntensity: hemiLight.intensity, // Será 0
+            exposure: renderer.toneMappingExposure, // Será 1.2
             
-            // TUS VALORES FIJOS
+            // TUS VALORES FIJOS (Actualizados)
             treeColor: '#7cf0fa',
-            treeIntensity: 96,
-            treeDistance: 11,
+            treeIntensity: 53, // Antes 96
+            treeDistance: 14,  // Antes 11
             treeShadow: false,
             treeShadowMapSize: 512,
             treeHelpers: false,
@@ -57,6 +57,7 @@ export class WorldEditor {
                 background: #00bcd4; color: white; border: none; padding: 8px 15px;
                 border-radius: 4px; cursor: pointer; font-weight: bold; font-family: monospace;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+                display: none !important; /* OCULTO SEGÚN PETICIÓN */
             }
             #we-panel {
                 position: fixed; top: 50px; left: 10px; width: 320px;
