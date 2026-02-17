@@ -2,7 +2,17 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ParticleSystem3D } from './particles.js';
 
-// --- CONFIGURACIÓN DE FASES ---
+// --- CONFIGURACIÓN DE LUCES DE ARBOLITO ---
+const TREE_LIGHT_CONFIG = {
+    color: 0x7cf0fa,
+    intensity: 96,
+    distance: 11,
+    shadow: false
+};
+
+// POSICIÓN FIJA PARA LA LUZ 1 (Las demás usarán la posición de Blender)
+const LIGHT_1_POS = new THREE.Vector3(49.15, -1.33, -6.70);
+
 const ORB_PHASES = [
     { color: 0xffa500, sound: './assets/sound/orbe_bass.mp3' }, 
     { color: 0x00ff00, sound: './assets/sound/orbe_mid.mp3' },  
@@ -26,6 +36,7 @@ export const levelState = {
     grassSource: { geometry: null, material: null, scale: new THREE.Vector3(1,1,1) },
     grassMaterialUniforms: { time: { value: 0 } }, grassParams: { count: 2000 },
     enemyData: { refA: null, pathA: [], animClipA: null, refB: null, pathB: [], animClipB: null },
+    treeLights: [], 
     laserHitRadius: 2.5,
     startPosition: null 
 };
@@ -230,6 +241,40 @@ function findGeometryForPath(obj) {
     return cleanPoints;
 }
 
+// CREADOR DE LUCES CON VALORES ESTANDARIZADOS
+function createTreeLight(scene, pos, index) {
+    const light = new THREE.PointLight(TREE_LIGHT_CONFIG.color, TREE_LIGHT_CONFIG.intensity, TREE_LIGHT_CONFIG.distance);
+    
+    // Si es la primera luz (índice 0), forzamos la posición dada por el usuario
+    if (index === 0) {
+        light.position.copy(LIGHT_1_POS);
+    } else {
+        light.position.copy(pos);
+    }
+    
+    light.castShadow = TREE_LIGHT_CONFIG.shadow;
+    light.shadow.bias = -0.0001;
+    light.shadow.mapSize.set(512, 512);
+
+    // Esfera Roja DEBUG (Visible a través de paredes)
+    const sphereGeo = new THREE.SphereGeometry(0.5, 16, 16);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, depthTest: false, transparent: true });
+    const visMesh = new THREE.Mesh(sphereGeo, sphereMat);
+    visMesh.renderOrder = 999;
+    visMesh.visible = false;
+    light.add(visMesh);
+    light.userData.visMesh = visMesh;
+
+    const helper = new THREE.PointLightHelper(light, 1.0);
+    helper.visible = false;
+    scene.add(helper);
+    light.userData.helper = helper;
+
+    light.name = `Luz Arbolito ${index + 1}`;
+    scene.add(light);
+    levelState.treeLights.push(light);
+}
+
 export function loadLevel(scene, loadingManager, levelFile, onLoadComplete) {
     initGlobalSFX();
     const loader = new GLTFLoader(loadingManager);
@@ -250,21 +295,30 @@ export function loadLevel(scene, loadingManager, levelFile, onLoadComplete) {
         let doorsCount = 0;
         levelState.mapBoundingBox.makeEmpty();
         levelState.startPosition = null; 
+        
+        levelState.treeLights = [];
+
         masterModule.updateMatrixWorld(true);
 
         masterModule.traverse((child) => {
             const name = child.name.toLowerCase();
 
-            // --- NUEVO: REPARACIÓN DE AO Y SOMBRAS ---
+            // Detectar Arbolitos y aplicar luces clonadas
+            if (name.includes("luz") && name.includes("arbolito")) {
+                const worldPos = new THREE.Vector3();
+                child.getWorldPosition(worldPos);
+                createTreeLight(scene, worldPos, levelState.treeLights.length);
+                child.visible = false;
+                return;
+            }
+
             if (child.isMesh) {
-                // Forzamos visibilidad de AO si el modelo tiene un aoMap (segundo canal UV)
                 if (child.material && child.material.aoMap) {
                     child.material.aoMapIntensity = 1.0; 
                     child.material.needsUpdate = true;
                 }
                 
-                // Aseguramos que reciban sombras si no es un emisor especial
-                if (!name.includes("emisor")) {
+                if (!name.includes("emisor") && !name.includes("luz")) {
                     child.castShadow = true;
                     child.receiveShadow = true;
                 }
@@ -313,6 +367,12 @@ export function loadLevel(scene, loadingManager, levelFile, onLoadComplete) {
             }
         });
 
+        // Fallback por seguridad
+        if (levelState.treeLights.length === 0) {
+            console.warn("⚠️ NO SE ENCONTRARON LUCES. Creando luz de emergencia...");
+            createTreeLight(scene, new THREE.Vector3(0, 10, 0), 0);
+        }
+
         if (gltf.animations) {
             gltf.animations.forEach((clip) => {
                 if (clip.name.toLowerCase().includes("puerta")) {
@@ -340,6 +400,15 @@ export function loadLevel(scene, loadingManager, levelFile, onLoadComplete) {
 
 export function unloadCurrentLevel(scene) {
     if (levelState.parametricMesh) { scene.remove(levelState.parametricMesh); levelState.parametricMesh.geometry.dispose(); levelState.parametricMesh = null; }
+    
+    levelState.treeLights.forEach(l => {
+        scene.remove(l);
+        if (l.userData.helper) { scene.remove(l.userData.helper); l.userData.helper.dispose(); }
+        if (l.userData.visMesh) { l.remove(l.userData.visMesh); l.userData.visMesh.geometry.dispose(); l.userData.visMesh.material.dispose(); }
+        if (l.shadow && l.shadow.map) l.shadow.map.dispose();
+    });
+    levelState.treeLights = [];
+
     levelState.orbs.forEach(orb => { if(orb.particles) orb.particles.dispose(); scene.remove(orb.mesh); orb.mesh.geometry.dispose(); orb.mesh.material.dispose(); if(orb.player) orb.player.dispose(); });
     levelState.orbs = []; if (levelState.levelMesh) { scene.remove(levelState.levelMesh); levelState.levelMesh = null; }
     levelState.collisionMeshes = []; levelState.grassEmitterMeshes = []; levelState.doorActions = []; levelState.platformMesh = null; levelState.sceneMixer = null; levelState.mapBoundingBox.makeEmpty();
@@ -351,7 +420,8 @@ function modifyMaterialForWind(material) {
     const newMat = material.clone();
     newMat.onBeforeCompile = (shader) => {
         shader.uniforms.time = levelState.grassMaterialUniforms.time;
-        shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nuniform float time;`);
+        shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
+uniform float time;`);
         shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
             float h = max(0.0, transformed.y); float worldX = instanceMatrix[3][0] + transformed.x; float worldZ = instanceMatrix[3][2] + transformed.z; 
             float windWave = sin(time * 3.0 - worldX * 0.5 + worldZ * 0.2); float bend = windWave * -0.25 * h * h; 
@@ -368,7 +438,8 @@ export function generateInstancedGrass(scene) {
     const count = levelState.grassParams.count; const windMaterial = modifyMaterialForWind(levelState.grassSource.material);
     const depthMat = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
     depthMat.onBeforeCompile = (shader) => {
-        shader.uniforms.time = levelState.grassMaterialUniforms.time; shader.vertexShader = `uniform float time;\n` + shader.vertexShader;
+        shader.uniforms.time = levelState.grassMaterialUniforms.time; shader.vertexShader = `uniform float time;
+` + shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
             float h = max(0.0, transformed.y); float worldX = instanceMatrix[3][0] + transformed.x; float worldZ = instanceMatrix[3][2] + transformed.z; 
             float windWave = sin(time * 3.0 - worldX * 0.5 + worldZ * 0.2); float bend = windWave * -0.25 * h * h; 
