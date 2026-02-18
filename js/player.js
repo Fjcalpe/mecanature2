@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+// --- SISTEMA DE SONIDO ---
 let stepGrass = null;
 let stepStone = null;
 
 function initStepAudio() {
+    // Inicializa los audios solo si no existen
     if(!stepGrass) {
         stepGrass = new Tone.Player({ url: './assets/sound/run_grass.mp3', loop: true, volume: -6 }).toDestination();
     }
@@ -17,9 +19,10 @@ export function unlockPlayerAudio() {
     initStepAudio();
 }
 
+// --- ESTADO GLOBAL DEL JUGADOR ---
 export const playerState = {
-    container: null,
-    visualMesh: null,   
+    container: null,    // Contenedor físico (Lógica)
+    visualMesh: null,   // Malla visual (Gráficos)
     mixer: null,
     actions: {},        
     activeAction: null, 
@@ -28,7 +31,7 @@ export const playerState = {
     velocityY: 0,
     isGrounded: false,
     landingCooldown: 0,
-    isMoving: false,
+    isMoving: false,    // Bandera para la cámara
     speed: 0,
     currentSurface: 'grass',
     standingOnEnemy: null, 
@@ -38,12 +41,19 @@ export const playerState = {
     }
 };
 
+// --- INPUTS ---
 const keyStates = { w: false, a: false, s: false, d: false };
-const moveDirection = new THREE.Vector3();
 const maxMoveSpeed = 7.5;
-const gravity = -50.0;
+const rotateSpeed = 2.5; 
+const gravity = -60.0; // Gravedad fuerte para pegar al suelo
 const jumpStrength = 18.0;
 
+// Variables reutilizables para colisiones (evita basura en memoria)
+const _wallRayOrigin = new THREE.Vector3();
+const _wallRayDir = new THREE.Vector3();
+const _wallRaycaster = new THREE.Raycaster();
+
+// Eventos de teclado
 window.addEventListener('keydown', (e) => { 
     if(e.code==='KeyW') keyStates.w = true; 
     if(e.code==='KeyS') keyStates.s = true; 
@@ -58,39 +68,48 @@ window.addEventListener('keyup', (e) => {
     if(e.code==='KeyD') keyStates.d = false; 
 });
 
+// --- CARGA DEL MODELO ---
 export function loadPlayer(scene, loadingManager) {
     const loader = new GLTFLoader(loadingManager);
     loader.load('./assets/models/GIRLrun.gltf', (gltf) => { 
         const rawMesh = gltf.scene;
         rawMesh.scale.set(1.2, 1.2, 1.2);
         
+        // 1. Crear Contenedor Físico (Invisible)
         playerState.container = new THREE.Group();
         playerState.container.position.set(-6, 4, 0);
         scene.add(playerState.container);
 
+        // 2. Centrar Malla Visual
         const box = new THREE.Box3().setFromObject(rawMesh);
         const center = box.getCenter(new THREE.Vector3());
         
+        // Ajuste para que el pivote esté en los pies
         rawMesh.position.set(-center.x, -box.min.y, -center.z);
         playerState.visualMesh = rawMesh;
         playerState.container.add(rawMesh);
         
+        // Sombras
         rawMesh.traverse((child) => { 
             if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } 
         });
 
+        // 3. Cargar Animaciones
         if (gltf.animations && gltf.animations.length > 0) {
             playerState.mixer = new THREE.AnimationMixer(rawMesh);
             gltf.animations.forEach((clip) => {
                 const name = clip.name;
                 const action = playerState.mixer.clipAction(clip);
                 const lower = name.toLowerCase();
+                
                 if (lower.includes('idle')) playerState.actions['Idle'] = action;
                 else if (lower.includes('run')) playerState.actions['Run'] = action;
                 else if (lower.includes('jump') || name.includes('Armature.001')) playerState.actions['Jump'] = action;
                 else if (lower.includes('walk') || (name.includes('Armature|mixamo') && !name.includes('.001'))) playerState.actions['Walk'] = action;
+                
                 playerState.actions[name] = action;
             });
+            // Iniciar Idle
             if(playerState.actions['Idle']) {
                 playerState.activeAction = playerState.actions['Idle'];
                 playerState.activeAction.play();
@@ -99,76 +118,29 @@ export function loadPlayer(scene, loadingManager) {
     });
 }
 
+// --- LÓGICA DE SALTO ---
 export function jump() {
     if (playerState.isGrounded) {
         playerState.velocityY = jumpStrength;
         playerState.isGrounded = false;
         
+        // Heredar inercia si salta desde plataforma móvil
         if (playerState.standingOnEnemy) {
             playerState.momentum.copy(playerState.standingOnEnemy.velocity);
-            playerState.visualMesh.rotation.set(0,0,0);
-            const velDir = playerState.standingOnEnemy.velocity.clone().normalize();
-            if (velDir.lengthSq() > 0.01) {
-                 const angle = Math.atan2(velDir.x, velDir.z);
-                 const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), angle);
-                 playerState.container.quaternion.copy(q);
-            }
+            playerState.standingOnEnemy = null; 
         }
-        
-        playerState.standingOnEnemy = null; 
 
+        // Parar sonidos de pasos
         if(stepGrass && stepGrass.state === 'started') stepGrass.stop();
         if(stepStone && stepStone.state === 'started') stepStone.stop();
     }
 }
 
-let isDamageBlinking = false;
-export function takeDamage() {
-    if (!playerState.visualMesh) return;
-    if (isDamageBlinking) return; // Evitar solapamientos
-
-    isDamageBlinking = true;
-    let blinkCount = 0;
-    const maxBlinks = 10; // 10 parpadeos de 100ms = 1 segundo total
-    const intervalTime = 100;
-
-    playerState.visualMesh.traverse(child => {
-        if(child.isMesh && child.material) {
-            if (!child.userData.origEmissive) {
-                child.userData.origEmissive = child.material.emissive ? child.material.emissive.getHex() : 0x000000;
-            }
-        }
-    });
-
-    const blinkInterval = setInterval(() => {
-        blinkCount++;
-        const isRed = (blinkCount % 2 !== 0); 
-
-        playerState.visualMesh.traverse(child => {
-            if(child.isMesh && child.material && child.material.emissive) {
-                if(isRed) {
-                    child.material.emissive.setHex(0xff0000);
-                } else {
-                    child.material.emissive.setHex(child.userData.origEmissive);
-                }
-            }
-        });
-
-        if (blinkCount >= maxBlinks) {
-            clearInterval(blinkInterval);
-            isDamageBlinking = false;
-            playerState.visualMesh.traverse(child => {
-                if(child.isMesh && child.material && child.material.emissive) {
-                    child.material.emissive.setHex(child.userData.origEmissive);
-                }
-            });
-        }
-    }, intervalTime);
-}
-
+// --- BUCLE PRINCIPAL (UPDATE) ---
 export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCinematic, enemies) {
     if (!playerState.container || !playerState.visualMesh) return;
 
+    // Modo Cinemática: Congelar todo
     if (isCinematic) {
         playerState.speed = 0; 
         playerState.isMoving = false;
@@ -180,59 +152,98 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
     }
 
     if (playerState.landingCooldown > 0) playerState.landingCooldown -= dt;
-    
-    let inputX = joystickVector.x; let inputY = joystickVector.y;
-    if (keyStates.w) inputY -= 1; if (keyStates.s) inputY += 1;
-    if (keyStates.a) inputX -= 1; if (keyStates.d) inputX += 1;
 
-    moveDirection.set(inputX, 0, inputY);
-    const len = moveDirection.length();
-    if (len > 0.1 && playerState.landingCooldown <= 0) {
+    // --- 1. ROTACIÓN (A / D) ---
+    let turnInput = 0;
+    if (keyStates.a) turnInput += 1; 
+    if (keyStates.d) turnInput -= 1; 
+    if (joystickVector.x !== 0) turnInput += -joystickVector.x;
+
+    if (Math.abs(turnInput) > 0.1) {
+        playerState.container.rotateY(turnInput * rotateSpeed * dt);
+    }
+
+    // --- 2. MOVIMIENTO (W / S) CON COLISIÓN DE PAREDES ---
+    let moveInput = 0;
+    if (keyStates.w) moveInput += 1; 
+    if (keyStates.s) moveInput -= 1; 
+    if (joystickVector.y !== 0) moveInput += -joystickVector.y;
+
+    if (Math.abs(moveInput) > 0.1) {
         playerState.isMoving = true;
-        playerState.speed = (len > 1 ? maxMoveSpeed : maxMoveSpeed * len);
+        playerState.speed = maxMoveSpeed * Math.abs(moveInput);
+        
+        const moveDist = moveInput * playerState.speed * dt;
+        
+        // A) DETECCIÓN DE PAREDES (Horizontal)
+        // Calculamos vector dirección en coordenadas mundiales
+        const directionSign = Math.sign(moveInput); // 1 (Adelante) o -1 (Atrás)
+        _wallRayDir.set(0, 0, directionSign).applyQuaternion(playerState.container.quaternion);
+        
+        // Origen: Un poco elevado (0.8m) para ignorar escalones pequeños
+        _wallRayOrigin.copy(playerState.container.position).y += 0.8;
+        
+        // Raycast: Distancia a mover + margen de seguridad (0.5m)
+        _wallRaycaster.set(_wallRayOrigin, _wallRayDir);
+        _wallRaycaster.far = Math.abs(moveDist) + 0.5;
+        
+        const hits = _wallRaycaster.intersectObjects(collisionMeshes, true);
+        
+        if (hits.length === 0) {
+            // No hay pared: MOVER
+            playerState.container.translateZ(moveDist);
+        } else {
+            // Hay pared: NO MOVER (Se detiene en seco)
+            // console.log("Pared detectada");
+        }
+
+        // B) GIRO VISUAL (Forward/Backward)
+        // Si va hacia atrás (< 0), girar 180 grados (PI). Si adelante, 0.
+        const targetRotation = (moveInput < 0) ? Math.PI : 0;
+        
+        // Interpolación angular suave
+        let currentRot = playerState.visualMesh.rotation.y;
+        let diff = targetRotation - currentRot;
+        // Normalizar ángulo
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        
+        playerState.visualMesh.rotation.y += diff * 10.0 * dt; // 10.0 es velocidad de giro visual
+
     } else {
         playerState.isMoving = false;
         playerState.speed = 0;
+        
+        // Reset visual suave a posición neutra al parar
+        let currentRot = playerState.visualMesh.rotation.y;
+        let diff = 0 - currentRot;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        playerState.visualMesh.rotation.y += diff * 5.0 * dt;
     }
 
+    // --- 3. FÍSICAS (SUELO / GRAVEDAD) ---
     let isOnEnemy = false;
     
+    // Check plataformas móviles (enemigos)
     if (enemies && enemies.length > 0) {
         for(let enemy of enemies) {
             if (enemy.state === 'dead' || !enemy.mesh || !enemy.collisionTop) continue;
-            
             enemy.collisionTop.updateMatrixWorld(); 
-
-            let exactHit = false;
-            const rayDown = new THREE.Raycaster(playerState.container.position.clone().add(new THREE.Vector3(0, 1.0, 0)), new THREE.Vector3(0, -1, 0), 0, 2.5);
-            const hits = rayDown.intersectObject(enemy.collisionTop);
-            if (hits.length > 0) exactHit = true;
-
+            
             const distHorizontal = Math.hypot(playerState.container.position.x - enemy.mesh.position.x, playerState.container.position.z - enemy.mesh.position.z);
-            const isCloseEnough = distHorizontal < 2.5; 
             const relativeY = playerState.container.position.y - enemy.mesh.position.y;
-            const isAbove = relativeY > -0.5 && relativeY < 4.0;
-
-            if ((playerState.velocityY <= 0 && (exactHit || (isCloseEnough && isAbove))) || playerState.standingOnEnemy === enemy) {
-                
+            
+            if (distHorizontal < 2.5 && relativeY > -0.5 && relativeY < 4.0 && playerState.velocityY <= 0) {
                 if (playerState.standingOnEnemy !== enemy) enemy.takeDamage(); 
-
                 isOnEnemy = true;
                 playerState.standingOnEnemy = enemy;
                 playerState.isGrounded = true;
                 playerState.velocityY = 0;
-
+                
                 const targetPos = new THREE.Vector3();
                 enemy.collisionTop.getWorldPosition(targetPos);
                 playerState.container.position.copy(targetPos);
-                
-                const targetQuat = new THREE.Quaternion();
-                enemy.collisionTop.getWorldQuaternion(targetQuat);
-                playerState.container.quaternion.copy(targetQuat);
-                
-                playerState.visualMesh.rotation.set(0,0,0);
-                playerState.momentum.set(0, 0, 0);
-                
                 break; 
             }
         }
@@ -240,50 +251,39 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
 
     if (!isOnEnemy) {
         playerState.standingOnEnemy = null;
-        playerState.visualMesh.rotation.set(0,0,0);
 
-        if (playerState.isMoving) {
-            const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3();
-            camera.getWorldDirection(_v1); _v1.y = 0; _v1.normalize(); 
-            _v2.crossVectors(new THREE.Vector3(0, 1, 0), _v1).normalize(); 
-            const finalDir = _v1.clone().multiplyScalar(-moveDirection.z).addScaledVector(_v2, -moveDirection.x).normalize();
-            
-            const ray = new THREE.Raycaster(playerState.container.position.clone().add(new THREE.Vector3(0,1,0)), finalDir, 0, 0.8);
-            if (ray.intersectObjects(collisionMeshes, true).length === 0) {
-                playerState.container.position.addScaledVector(finalDir, playerState.speed * dt);
-            }
-            playerState.container.quaternion.slerp(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(finalDir.x, finalDir.z)), 10 * dt);
-        } else {
-            // MODIFICACIÓN: Si no estamos sobre un enemigo ni moviéndonos, enderezamos el personaje
-            // para evitar que se quede inclinado tras caer de un enemigo.
-            const currentEuler = new THREE.Euler().setFromQuaternion(playerState.container.quaternion, 'YXZ');
-            // Mantenemos solo la rotación Y (Yaw) y ponemos X y Z a 0
-            const uprightQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, currentEuler.y, 0));
-            playerState.container.quaternion.slerp(uprightQuat, 10 * dt);
-        }
-
+        // Gravedad aérea
         if (!playerState.isGrounded) {
             playerState.container.position.addScaledVector(playerState.momentum, dt);
         }
 
         playerState.velocityY += gravity * dt;
         const propY = playerState.container.position.y + playerState.velocityY * dt;
-        const floorInfo = getFloorInfo(playerState.container.position, playerState.container.position.y, collisionMeshes);
-        const distToFloor = playerState.container.position.y - floorInfo.y;
-
-        if (propY <= floorInfo.y && playerState.velocityY <= 0) {
+        
+        // Raycast Vertical (Suelo) desde la nueva posición propuesta
+        const checkPos = playerState.container.position.clone();
+        checkPos.y = propY;
+        const floorInfo = getFloorInfo(checkPos, collisionMeshes);
+        
+        // Lógica de aterrizaje
+        if (floorInfo.y !== -999 && propY <= floorInfo.y + 0.1 && playerState.velocityY <= 0) {
+            // Tocar suelo
             playerState.container.position.y = floorInfo.y;
             playerState.velocityY = 0;
             playerState.isGrounded = true;
             playerState.momentum.set(0,0,0); 
-        } else if (playerState.isGrounded && distToFloor < 0.4 && playerState.velocityY <= 0) {
-            playerState.container.position.y = floorInfo.y;
-            playerState.velocityY = 0;
+        } 
+        else if (playerState.isGrounded && floorInfo.y !== -999 && (playerState.container.position.y - floorInfo.y) < 0.6) {
+             // Snap (Pegarse al suelo en rampas bajando)
+             playerState.container.position.y = floorInfo.y;
+             playerState.velocityY = 0;
         } else {
+            // Caer / Saltar
             playerState.container.position.y = propY;
             playerState.isGrounded = false;
         }
 
+        // Detectar tipo de superficie para sonido
         if (playerState.isGrounded && floorInfo.object) {
             const name = floorInfo.object.name.toLowerCase();
             playerState.currentSurface = (name.includes("consola") || name.includes("plataforma") || name.includes("mirador")) ? 'stone' : 'grass';
@@ -292,10 +292,15 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
         playerState.currentSurface = 'stone';
     }
 
+    // --- 4. ANIMACIONES ---
     if (playerState.mixer) {
         let nextActionName = 'Idle';
-        if (!playerState.isGrounded && !isOnEnemy) nextActionName = 'Jump';
-        else if (playerState.isMoving) nextActionName = (playerState.speed > 4.0) ? 'Run' : 'Walk';
+        
+        if (!playerState.isGrounded && !isOnEnemy) {
+            nextActionName = 'Jump';
+        } else if (playerState.isMoving) {
+            nextActionName = (playerState.speed > 4.0) ? 'Run' : 'Walk';
+        }
 
         if (!playerState.actions[nextActionName]) {
             if (nextActionName === 'Walk') nextActionName = 'Run';
@@ -306,16 +311,19 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
 
         const active = playerState.activeAction;
         if (active) {
-            if (nextActionName === 'Run') active.timeScale = playerState.speed / 7.5;
-            else if (nextActionName === 'Walk') active.timeScale = (playerState.speed / 3.5) * playerState.animSpeeds.walk;
-            else if (nextActionName === 'Jump') active.timeScale = playerState.animSpeeds.jump;
-            else active.timeScale = 1.0;
+            // Velocidad de animación
+            if (nextActionName === 'Run' || nextActionName === 'Walk') {
+                active.timeScale = playerState.speed / 7.5;
+            } else {
+                active.timeScale = 1.0;
+            }
         }
         playerState.mixer.update(dt);
     }
     handleFootsteps();
 }
 
+// Helper: Transición suave de animaciones
 function changeAction(name, duration) {
     const nextAction = playerState.actions[name];
     if (!nextAction || playerState.activeAction === nextAction) return;
@@ -324,6 +332,7 @@ function changeAction(name, duration) {
     playerState.activeAction = nextAction;
 }
 
+// Helper: Sonidos de pasos
 function handleFootsteps() {
     if (!stepGrass || !stepStone) return;
     if (playerState.isGrounded && playerState.isMoving && playerState.speed > 0.1) {
@@ -343,11 +352,23 @@ function handleFootsteps() {
     }
 }
 
-function getFloorInfo(pos, currentY, meshes) {
-    const origin = pos.clone().add(new THREE.Vector3(0, 2, 0));
+// Helper: Raycast vertical para suelo
+function getFloorInfo(pos, meshes) {
+    const origin = pos.clone().add(new THREE.Vector3(0, 1.5, 0)); // Rayo desde cintura
     const ray = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0), 0, 10);
     const hits = ray.intersectObjects(meshes, true);
     return hits.length > 0 ? { y: hits[0].point.y, object: hits[0].object } : { y: -999, object: null };
 }
 
+// Exports dummy (si se usan en main)
 export function shoot(scene) {}
+export function takeDamage() {
+    if (!playerState.visualMesh) return;
+    playerState.visualMesh.traverse(child => {
+        if(child.isMesh && child.material) {
+             const old = child.material.emissive.getHex();
+             child.material.emissive.setHex(0xff0000);
+             setTimeout(() => { if(child.material) child.material.emissive.setHex(old); }, 200);
+        }
+    });
+}

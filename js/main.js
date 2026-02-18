@@ -15,14 +15,14 @@ import { WorldEditor } from './world_editor.js';
 const freqHint = document.getElementById('freq-hint');
 const jumpHint = document.getElementById('jump-hint');
 
-// --- CONFIGURACIÓN DE AMBIENTE (Valores de la captura) ---
+// --- CONFIGURACIÓN DE AMBIENTE ---
 const DEFAULT_ENV = {
   "fogColor": "#fafdce",
-  "fogDensity": 0.018, // Actualizado según petición
+  "fogDensity": 0.018,
   "sunColor": "#fbebbb",
   "sunIntensity": 3.1,
   "hemiSkyColor": "#ffffff",
-  "hemiGroundColor": "#1e667b", // Azulado captura
+  "hemiGroundColor": "#1e667b",
   "hemiIntensity": 0,
   "exposure": 1.2
 };
@@ -58,17 +58,9 @@ const outputPass = new OutputPass();
 composer.addPass(outputPass);
 let useAO = false; 
 
-// ILUMINACIÓN
+// --- ILUMINACIÓN ---
 
 // 1. LUZ SOLAR
-const sunDistance = 50; 
-const sunElevation = 13; 
-const sunRotation = 270; 
-let sunOffset = new THREE.Vector3();
-const phi = THREE.MathUtils.degToRad(90 - sunElevation); 
-const theta = THREE.MathUtils.degToRad(sunRotation);
-sunOffset.set(sunDistance * Math.sin(phi) * Math.sin(theta), sunDistance * Math.cos(phi), sunDistance * Math.sin(phi) * Math.cos(theta));
-
 const sunLight = new THREE.DirectionalLight(DEFAULT_ENV.sunColor, DEFAULT_ENV.sunIntensity);
 sunLight.castShadow = true; 
 sunLight.shadow.mapSize.set(4096, 4096); 
@@ -84,6 +76,18 @@ sunLight.shadow.normalBias = 0.05;
 scene.add(sunLight); 
 scene.add(sunLight.target); 
 
+// Cálculo inicial de posición del sol (Elevación 13º por defecto)
+const sunDistance = 50; 
+const sunElevation = 13; 
+const sunRotation = 270; 
+const phi = THREE.MathUtils.degToRad(90 - sunElevation); 
+const theta = THREE.MathUtils.degToRad(sunRotation);
+const initialSunOffset = new THREE.Vector3();
+initialSunOffset.set(sunDistance * Math.sin(phi) * Math.sin(theta), sunDistance * Math.cos(phi), sunDistance * Math.sin(phi) * Math.cos(theta));
+
+// Guardamos el offset en userData para que el WorldEditor pueda modificarlo
+sunLight.userData.sunOffset = initialSunOffset;
+
 // 2. LUZ AMBIENTE
 const hemiLight = new THREE.HemisphereLight(DEFAULT_ENV.hemiSkyColor, DEFAULT_ENV.hemiGroundColor, DEFAULT_ENV.hemiIntensity);
 scene.add(hemiLight);
@@ -97,7 +101,7 @@ new THREE.TextureLoader().load('./assets/textures/bg_reflejosIBL.webp', (t) => {
     if(scene.environmentRotation) scene.environmentRotation.y = THREE.MathUtils.degToRad(334); 
 });
 
-// EDITOR (Se ocultará visualmente desde world_editor.js)
+// EDITOR
 const worldEditor = new WorldEditor(scene, sunLight, hemiLight, renderer, camera);
 
 function applyGraphicsSettings(quality) {
@@ -361,9 +365,12 @@ function animate() {
         });
         if (jumpHint) jumpHint.style.display = (closeToEnemy && questState === 2) ? 'block' : 'none';
         
-        sunLight.target.position.set(0, 0, playerState.container.position.z); 
-        sunLight.target.updateMatrixWorld(); 
-        sunLight.position.copy(sunLight.target.position).add(sunOffset);
+        // ACTUALIZACIÓN DEL SOL: Usamos el offset almacenado en userData
+        if (sunLight.userData.sunOffset) {
+            sunLight.target.position.set(0, 0, playerState.container.position.z); 
+            sunLight.target.updateMatrixWorld(); 
+            sunLight.position.copy(sunLight.target.position).add(sunLight.userData.sunOffset);
+        }
         
         if (levelState.bgMesh) levelState.bgMesh.position.copy(camera.position);
         
