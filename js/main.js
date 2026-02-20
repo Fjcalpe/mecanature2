@@ -1,3 +1,4 @@
+// main.js
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -205,7 +206,19 @@ const onPlayerHit = () => {
     } 
 };
 
+// --- CONTROL DE CARGA INICIAL PARA EVITAR CAÍDAS AL VACÍO ---
+let isInitialLoadReady = false; 
 const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onLoad = () => {
+    isInitialLoadReady = true;
+    // Asegurarnos de limpiar cualquier inercia acumulada durante el congelamiento
+    if (playerState) {
+        playerState.velocityY = 0;
+        playerState.momentum.set(0, 0, 0);
+    }
+};
+
 loadLevel(scene, loadingManager, './assets/models/MN_SCENE_01.gltf', () => {
     if (levelState.enemyData.refA) {
         enemies.push(new Enemy(scene, { refObject: levelState.enemyData.refA, pathPoints: levelState.enemyData.pathB, mixer: levelState.sceneMixer, introClip: levelState.enemyData.animClipA }, onPlayerHit));
@@ -354,7 +367,8 @@ function animate() {
         if (questState === 2 && phaseUp) currentPhase++; 
     }
     
-    if (playerState.container) {
+    // --- BLOQUE PROTEGIDO: Solo actualiza si todo cargó correctamente ---
+    if (playerState.container && isInitialLoadReady && !isChangingLevel) {
         let closeToEnemy = false;
         enemies.forEach(e => { 
             e.update(dt, playerState.container); 
