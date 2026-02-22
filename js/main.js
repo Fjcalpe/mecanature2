@@ -60,8 +60,6 @@ composer.addPass(outputPass);
 let useAO = false; 
 
 // --- ILUMINACIÓN ---
-
-// 1. LUZ SOLAR
 const sunLight = new THREE.DirectionalLight(DEFAULT_ENV.sunColor, DEFAULT_ENV.sunIntensity);
 sunLight.castShadow = true; 
 sunLight.shadow.mapSize.set(4096, 4096); 
@@ -77,7 +75,6 @@ sunLight.shadow.normalBias = 0.05;
 scene.add(sunLight); 
 scene.add(sunLight.target); 
 
-// Cálculo inicial de posición del sol (Elevación 13º por defecto)
 const sunDistance = 50; 
 const sunElevation = 13; 
 const sunRotation = 270; 
@@ -85,15 +82,11 @@ const phi = THREE.MathUtils.degToRad(90 - sunElevation);
 const theta = THREE.MathUtils.degToRad(sunRotation);
 const initialSunOffset = new THREE.Vector3();
 initialSunOffset.set(sunDistance * Math.sin(phi) * Math.sin(theta), sunDistance * Math.cos(phi), sunDistance * Math.sin(phi) * Math.cos(theta));
-
-// Guardamos el offset en userData para que el WorldEditor pueda modificarlo
 sunLight.userData.sunOffset = initialSunOffset;
 
-// 2. LUZ AMBIENTE
 const hemiLight = new THREE.HemisphereLight(DEFAULT_ENV.hemiSkyColor, DEFAULT_ENV.hemiGroundColor, DEFAULT_ENV.hemiIntensity);
 scene.add(hemiLight);
 
-// REFLEJOS
 new THREE.TextureLoader().load('./assets/textures/bg_reflejosIBL.webp', (t) => { 
     t.mapping = THREE.EquirectangularReflectionMapping; 
     t.colorSpace = THREE.SRGBColorSpace; 
@@ -102,7 +95,6 @@ new THREE.TextureLoader().load('./assets/textures/bg_reflejosIBL.webp', (t) => {
     if(scene.environmentRotation) scene.environmentRotation.y = THREE.MathUtils.degToRad(334); 
 });
 
-// EDITOR
 const worldEditor = new WorldEditor(scene, sunLight, hemiLight, renderer, camera);
 
 function applyGraphicsSettings(quality) {
@@ -136,6 +128,7 @@ function switchLevel(levelId) {
     isChangingLevel = true;
     const file = levelId === 1 ? './assets/models/MN_SCENE_01.gltf' : './assets/models/Escenario_2.gltf';
     document.body.classList.add('faded-out');
+    
     setTimeout(() => {
         enemies.forEach(e => { 
             if(e.mesh) scene.remove(e.mesh); 
@@ -155,9 +148,14 @@ function switchLevel(levelId) {
             } else if (levelId === 1) {
                 playerState.container.position.set(-6, 4, 0); 
             }
+            // REINICIO EXPLÍCITO DE FÍSICAS AL CAMBIAR DE NIVEL
             playerState.velocity.set(0,0,0); 
             playerState.momentum.set(0,0,0);
+            playerState.velocityY = 0; 
             
+            // FORZAR ACTUALIZACIÓN DE MATRICES ANTES DE QUITAR LA PAUSA
+            scene.updateMatrixWorld(true);
+
             if (levelState.enemyData.refA) {
                 enemies.push(new Enemy(scene, { refObject: levelState.enemyData.refA, pathPoints: levelState.enemyData.pathB, mixer: levelState.sceneMixer, introClip: levelState.enemyData.animClipA }, onPlayerHit));
             }
@@ -208,16 +206,41 @@ const onPlayerHit = () => {
 
 // --- CONTROL DE CARGA INICIAL PARA EVITAR CAÍDAS AL VACÍO ---
 let isInitialLoadReady = false; 
+let assetsLoaded = false;
+let levelReady = false;
+let playerReady = false;
+
 const loadingManager = new THREE.LoadingManager();
 
 loadingManager.onLoad = () => {
-    isInitialLoadReady = true;
-    // Asegurarnos de limpiar cualquier inercia acumulada durante el congelamiento
-    if (playerState) {
-        playerState.velocityY = 0;
-        playerState.momentum.set(0, 0, 0);
-    }
+    assetsLoaded = true;
+    checkInitialLoad();
 };
+
+function checkInitialLoad() {
+    // Solo cuando todo está descargado y procesado
+    if (assetsLoaded && levelReady && playerReady && !isInitialLoadReady) {
+        
+        // 1. Forzar actualización de matrices de colisión
+        scene.updateMatrixWorld(true);
+
+        // 2. Asegurar limpieza de inercias y posición exacta antes de soltar al pj
+        if (playerState && playerState.container) {
+            playerState.container.position.set(-6, 4, 0);
+            playerState.velocityY = 0;
+            playerState.momentum.set(0, 0, 0);
+            playerState.isGrounded = false;
+        }
+
+        // 3. Iniciar lógica de actualización física
+        isInitialLoadReady = true;
+
+        // 4. Retirar fundido a negro visualmente
+        setTimeout(() => {
+            document.body.classList.remove('faded-out');
+        }, 500);
+    }
+}
 
 loadLevel(scene, loadingManager, './assets/models/MN_SCENE_01.gltf', () => {
     if (levelState.enemyData.refA) {
@@ -226,8 +249,14 @@ loadLevel(scene, loadingManager, './assets/models/MN_SCENE_01.gltf', () => {
     if (levelState.enemyData.refB) {
         enemies.push(new Enemy(scene, { refObject: levelState.enemyData.refB, pathPoints: levelState.enemyData.pathA, mixer: levelState.sceneMixer, introClip: levelState.enemyData.animClipB }, onPlayerHit));
     }
+    levelReady = true;
+    checkInitialLoad();
 });
-loadPlayer(scene, loadingManager);
+
+loadPlayer(scene, loadingManager, () => {
+    playerReady = true;
+    checkInitialLoad();
+});
 
 const unlockAudio = async () => {
     await Tone.start(); 
@@ -367,7 +396,6 @@ function animate() {
         if (questState === 2 && phaseUp) currentPhase++; 
     }
     
-    // --- BLOQUE PROTEGIDO: Solo actualiza si todo cargó correctamente ---
     if (playerState.container && isInitialLoadReady && !isChangingLevel) {
         let closeToEnemy = false;
         enemies.forEach(e => { 
@@ -379,7 +407,6 @@ function animate() {
         });
         if (jumpHint) jumpHint.style.display = (closeToEnemy && questState === 2) ? 'block' : 'none';
         
-        // ACTUALIZACIÓN DEL SOL: Usamos el offset almacenado en userData
         if (sunLight.userData.sunOffset) {
             sunLight.target.position.set(0, 0, playerState.container.position.z); 
             sunLight.target.updateMatrixWorld(); 
@@ -409,3 +436,4 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight); 
 });
 animate();
+        

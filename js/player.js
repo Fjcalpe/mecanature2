@@ -6,7 +6,6 @@ let stepGrass = null;
 let stepStone = null;
 
 function initStepAudio() {
-    // Inicializa los audios solo si no existen
     if(!stepGrass) {
         stepGrass = new Tone.Player({ url: './assets/sound/run_grass.mp3', loop: true, volume: -6 }).toDestination();
     }
@@ -48,12 +47,10 @@ const rotateSpeed = 2.5;
 const gravity = -60.0; // Gravedad fuerte para pegar al suelo
 const jumpStrength = 18.0;
 
-// Variables reutilizables para colisiones (evita basura en memoria)
 const _wallRayOrigin = new THREE.Vector3();
 const _wallRayDir = new THREE.Vector3();
 const _wallRaycaster = new THREE.Raycaster();
 
-// Eventos de teclado
 window.addEventListener('keydown', (e) => { 
     if(e.code==='KeyW') keyStates.w = true; 
     if(e.code==='KeyS') keyStates.s = true; 
@@ -69,32 +66,27 @@ window.addEventListener('keyup', (e) => {
 });
 
 // --- CARGA DEL MODELO ---
-export function loadPlayer(scene, loadingManager) {
+export function loadPlayer(scene, loadingManager, onLoadComplete) {
     const loader = new GLTFLoader(loadingManager);
     loader.load('./assets/models/GIRLrun.gltf', (gltf) => { 
         const rawMesh = gltf.scene;
         rawMesh.scale.set(1.2, 1.2, 1.2);
         
-        // 1. Crear Contenedor Físico (Invisible)
         playerState.container = new THREE.Group();
         playerState.container.position.set(-6, 4, 0);
         scene.add(playerState.container);
 
-        // 2. Centrar Malla Visual
         const box = new THREE.Box3().setFromObject(rawMesh);
         const center = box.getCenter(new THREE.Vector3());
         
-        // Ajuste para que el pivote esté en los pies
         rawMesh.position.set(-center.x, -box.min.y, -center.z);
         playerState.visualMesh = rawMesh;
         playerState.container.add(rawMesh);
         
-        // Sombras
         rawMesh.traverse((child) => { 
             if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } 
         });
 
-        // 3. Cargar Animaciones
         if (gltf.animations && gltf.animations.length > 0) {
             playerState.mixer = new THREE.AnimationMixer(rawMesh);
             gltf.animations.forEach((clip) => {
@@ -109,12 +101,13 @@ export function loadPlayer(scene, loadingManager) {
                 
                 playerState.actions[name] = action;
             });
-            // Iniciar Idle
             if(playerState.actions['Idle']) {
                 playerState.activeAction = playerState.actions['Idle'];
                 playerState.activeAction.play();
             }
         }
+        
+        if (onLoadComplete) onLoadComplete();
     });
 }
 
@@ -124,13 +117,11 @@ export function jump() {
         playerState.velocityY = jumpStrength;
         playerState.isGrounded = false;
         
-        // Heredar inercia si salta desde plataforma móvil
         if (playerState.standingOnEnemy) {
             playerState.momentum.copy(playerState.standingOnEnemy.velocity);
             playerState.standingOnEnemy = null; 
         }
 
-        // Parar sonidos de pasos
         if(stepGrass && stepGrass.state === 'started') stepGrass.stop();
         if(stepStone && stepStone.state === 'started') stepStone.stop();
     }
@@ -140,7 +131,6 @@ export function jump() {
 export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCinematic, enemies) {
     if (!playerState.container || !playerState.visualMesh) return;
 
-    // Modo Cinemática: Congelar todo
     if (isCinematic) {
         playerState.speed = 0; 
         playerState.isMoving = false;
@@ -153,7 +143,6 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
 
     if (playerState.landingCooldown > 0) playerState.landingCooldown -= dt;
 
-    // --- 1. ROTACIÓN (A / D) ---
     let turnInput = 0;
     if (keyStates.a) turnInput += 1; 
     if (keyStates.d) turnInput -= 1; 
@@ -163,7 +152,6 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
         playerState.container.rotateY(turnInput * rotateSpeed * dt);
     }
 
-    // --- 2. MOVIMIENTO (W / S) CON COLISIÓN DE PAREDES ---
     let moveInput = 0;
     if (keyStates.w) moveInput += 1; 
     if (keyStates.s) moveInput -= 1; 
@@ -175,46 +163,33 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
         
         const moveDist = moveInput * playerState.speed * dt;
         
-        // A) DETECCIÓN DE PAREDES (Horizontal)
-        // Calculamos vector dirección en coordenadas mundiales
-        const directionSign = Math.sign(moveInput); // 1 (Adelante) o -1 (Atrás)
+        const directionSign = Math.sign(moveInput); 
         _wallRayDir.set(0, 0, directionSign).applyQuaternion(playerState.container.quaternion);
         
-        // Origen: Un poco elevado (0.8m) para ignorar escalones pequeños
         _wallRayOrigin.copy(playerState.container.position).y += 0.8;
         
-        // Raycast: Distancia a mover + margen de seguridad (0.5m)
         _wallRaycaster.set(_wallRayOrigin, _wallRayDir);
         _wallRaycaster.far = Math.abs(moveDist) + 0.5;
         
         const hits = _wallRaycaster.intersectObjects(collisionMeshes, true);
         
         if (hits.length === 0) {
-            // No hay pared: MOVER
             playerState.container.translateZ(moveDist);
-        } else {
-            // Hay pared: NO MOVER (Se detiene en seco)
-            // console.log("Pared detectada");
         }
 
-        // B) GIRO VISUAL (Forward/Backward)
-        // Si va hacia atrás (< 0), girar 180 grados (PI). Si adelante, 0.
         const targetRotation = (moveInput < 0) ? Math.PI : 0;
         
-        // Interpolación angular suave
         let currentRot = playerState.visualMesh.rotation.y;
         let diff = targetRotation - currentRot;
-        // Normalizar ángulo
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         
-        playerState.visualMesh.rotation.y += diff * 10.0 * dt; // 10.0 es velocidad de giro visual
+        playerState.visualMesh.rotation.y += diff * 10.0 * dt; 
 
     } else {
         playerState.isMoving = false;
         playerState.speed = 0;
         
-        // Reset visual suave a posición neutra al parar
         let currentRot = playerState.visualMesh.rotation.y;
         let diff = 0 - currentRot;
         while (diff > Math.PI) diff -= Math.PI * 2;
@@ -222,10 +197,8 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
         playerState.visualMesh.rotation.y += diff * 5.0 * dt;
     }
 
-    // --- 3. FÍSICAS (SUELO / GRAVEDAD) ---
     let isOnEnemy = false;
     
-    // Check plataformas móviles (enemigos)
     if (enemies && enemies.length > 0) {
         for(let enemy of enemies) {
             if (enemy.state === 'dead' || !enemy.mesh || !enemy.collisionTop) continue;
@@ -252,7 +225,6 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
     if (!isOnEnemy) {
         playerState.standingOnEnemy = null;
 
-        // Gravedad aérea
         if (!playerState.isGrounded) {
             playerState.container.position.addScaledVector(playerState.momentum, dt);
         }
@@ -260,30 +232,24 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
         playerState.velocityY += gravity * dt;
         const propY = playerState.container.position.y + playerState.velocityY * dt;
         
-        // Raycast Vertical (Suelo) desde la nueva posición propuesta
         const checkPos = playerState.container.position.clone();
         checkPos.y = propY;
         const floorInfo = getFloorInfo(checkPos, collisionMeshes);
         
-        // Lógica de aterrizaje
         if (floorInfo.y !== -999 && propY <= floorInfo.y + 0.1 && playerState.velocityY <= 0) {
-            // Tocar suelo
             playerState.container.position.y = floorInfo.y;
             playerState.velocityY = 0;
             playerState.isGrounded = true;
             playerState.momentum.set(0,0,0); 
         } 
         else if (playerState.isGrounded && floorInfo.y !== -999 && (playerState.container.position.y - floorInfo.y) < 0.6) {
-             // Snap (Pegarse al suelo en rampas bajando)
              playerState.container.position.y = floorInfo.y;
              playerState.velocityY = 0;
         } else {
-            // Caer / Saltar
             playerState.container.position.y = propY;
             playerState.isGrounded = false;
         }
 
-        // Detectar tipo de superficie para sonido
         if (playerState.isGrounded && floorInfo.object) {
             const name = floorInfo.object.name.toLowerCase();
             playerState.currentSurface = (name.includes("consola") || name.includes("plataforma") || name.includes("mirador")) ? 'stone' : 'grass';
@@ -292,7 +258,6 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
         playerState.currentSurface = 'stone';
     }
 
-    // --- 4. ANIMACIONES ---
     if (playerState.mixer) {
         let nextActionName = 'Idle';
         
@@ -311,7 +276,6 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
 
         const active = playerState.activeAction;
         if (active) {
-            // Velocidad de animación
             if (nextActionName === 'Run' || nextActionName === 'Walk') {
                 active.timeScale = playerState.speed / 7.5;
             } else {
@@ -323,7 +287,6 @@ export function updatePlayer(dt, camera, joystickVector, collisionMeshes, isCine
     handleFootsteps();
 }
 
-// Helper: Transición suave de animaciones
 function changeAction(name, duration) {
     const nextAction = playerState.actions[name];
     if (!nextAction || playerState.activeAction === nextAction) return;
@@ -332,7 +295,6 @@ function changeAction(name, duration) {
     playerState.activeAction = nextAction;
 }
 
-// Helper: Sonidos de pasos
 function handleFootsteps() {
     if (!stepGrass || !stepStone) return;
     if (playerState.isGrounded && playerState.isMoving && playerState.speed > 0.1) {
@@ -352,15 +314,13 @@ function handleFootsteps() {
     }
 }
 
-// Helper: Raycast vertical para suelo
 function getFloorInfo(pos, meshes) {
-    const origin = pos.clone().add(new THREE.Vector3(0, 1.5, 0)); // Rayo desde cintura
+    const origin = pos.clone().add(new THREE.Vector3(0, 1.5, 0)); 
     const ray = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0), 0, 10);
     const hits = ray.intersectObjects(meshes, true);
     return hits.length > 0 ? { y: hits[0].point.y, object: hits[0].object } : { y: -999, object: null };
 }
 
-// Exports dummy (si se usan en main)
 export function shoot(scene) {}
 export function takeDamage() {
     if (!playerState.visualMesh) return;
@@ -372,3 +332,4 @@ export function takeDamage() {
         }
     });
 }
+        
