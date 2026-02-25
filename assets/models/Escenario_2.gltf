@@ -656,22 +656,22 @@
 		},
 		{
 			"mesh":43,
-			"name":"rocas AO",
+			"name":"pedrerio AO",
 			"rotation":[
-				0.0337076261639595,
-				0.9815441370010376,
-				-0.012583786621689796,
-				0.1878204196691513
+				0.08162906020879745,
+				-0.8629456162452698,
+				-0.007793394848704338,
+				0.4985988140106201
 			],
 			"scale":[
-				13.78756332397461,
-				11.995356559753418,
-				21.689067840576172
+				16.865631103515625,
+				14.673307418823242,
+				26.53113555908203
 			],
 			"translation":[
-				85.27615356445312,
-				14.411584854125977,
-				31.375926971435547
+				38.97035598754883,
+				4.144693851470947,
+				8.162282943725586
 			]
 		}
 	],
@@ -891,23 +891,18 @@
 			}
 		},
 		{
-			"doubleSided":false,
-			"name":"MatPlus_rocas AO_01"
-		},
-		{
 			"doubleSided":true,
 			"name":"Material_0",
 			"normalTexture":{
-				"index":12,
-				"texCoord":1
+				"index":12
 			},
 			"occlusionTexture":{
-				"index":13
+				"index":13,
+				"texCoord":1
 			},
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
-					"index":14,
-					"texCoord":1
+					"index":14
 				},
 				"metallicFactor":0
 			}
@@ -1544,7 +1539,7 @@
 			]
 		},
 		{
-			"name":"tripo_mesh_1a2b6a09-c015-40c7-8a44-b7d29432d7e4.004",
+			"name":"tripo_mesh_1a2b6a09-c015-40c7-8a44-b7d29432d7e4.018",
 			"primitives":[
 				{
 					"attributes":{
@@ -1555,16 +1550,6 @@
 					},
 					"indices":180,
 					"material":13
-				},
-				{
-					"attributes":{
-						"POSITION":181,
-						"NORMAL":182,
-						"TEXCOORD_0":183,
-						"TEXCOORD_1":184
-					},
-					"indices":185,
-					"material":14
 				}
 			]
 		}
@@ -1871,13 +1856,13 @@
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"pedrolos AO_01_exp_AO",
-			"uri":"pedrolos%20AO_01_exp_AO.webp"
+			"name":"pedrerio AO_01_exp_AO",
+			"uri":"pedrerio%20AO_01_exp_AO.webp"
 		},
 		{
 			"mimeType":"image/webp",
-			"name":"pedrolo COLOR",
-			"uri":"pedrolo%20COLOR.webp"
+			"name":"mejora_la_textura_para_que_sea_mas_de_piedra_aade_grietas_y_rot",
+			"uri":"mejora_la_textura_para_que_sea_mas_de_piedra_aade_grietas_y_rot.webp"
 		},
 		{
 			"mimeType":"image/webp",
@@ -3485,81 +3470,41 @@
 		{
 			"bufferView":176,
 			"componentType":5126,
-			"count":776,
+			"count":136047,
 			"max":[
-				0.7402943968772888,
-				0.42005422711372375,
-				0.7969229221343994
+				0.12921646237373352,
+				1.0441508293151855,
+				0.8996460437774658
 			],
 			"min":[
-				0.2553905248641968,
-				-0.5164873003959656,
-				0.3133895993232727
+				-3.599846363067627,
+				-0.9955949783325195,
+				-2.064457416534424
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":177,
 			"componentType":5126,
-			"count":776,
+			"count":136047,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":178,
 			"componentType":5126,
-			"count":776,
+			"count":136047,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":179,
 			"componentType":5126,
-			"count":776,
+			"count":136047,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":180,
-			"componentType":5123,
-			"count":1389,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":181,
-			"componentType":5126,
-			"count":247591,
-			"max":[
-				5.185598850250244,
-				0.5674315690994263,
-				3.001455307006836
-			],
-			"min":[
-				-0.1968318521976471,
-				-2.3077969551086426,
-				-0.2958011031150818
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":182,
-			"componentType":5126,
-			"count":247591,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":183,
-			"componentType":5126,
-			"count":247591,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":184,
-			"componentType":5126,
-			"count":247591,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":185,
 			"componentType":5125,
-			"count":366000,
+			"count":201000,
 			"type":"SCALAR"
 		}
 	],
@@ -4622,62 +4567,32 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":9312,
+			"byteLength":1632564,
 			"byteOffset":2620676,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":9312,
-			"byteOffset":2629988,
+			"byteLength":1632564,
+			"byteOffset":4253240,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6208,
-			"byteOffset":2639300,
+			"byteLength":1088376,
+			"byteOffset":5885804,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6208,
-			"byteOffset":2645508,
+			"byteLength":1088376,
+			"byteOffset":6974180,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2778,
-			"byteOffset":2651716,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":2971092,
-			"byteOffset":2654496,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2971092,
-			"byteOffset":5625588,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1980728,
-			"byteOffset":8596680,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1980728,
-			"byteOffset":10577408,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1464000,
-			"byteOffset":12558136,
+			"byteLength":804000,
+			"byteOffset":8062556,
 			"target":34963
 		}
 	],
@@ -4695,7 +4610,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":14022136,
+			"byteLength":8866556,
 			"uri":"Escenario_2.bin"
 		}
 	]
